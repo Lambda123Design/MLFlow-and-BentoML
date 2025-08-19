@@ -90,3 +90,42 @@ But mlflow is not installed in Anaconda's Python
 
 
 ##### A) MLFlow First Project:
+
+1. from mlflow.models import infer_signature - For inference
+
+2. ### MLFLOW tracking
+mlflow.set_tracking_uri(uri="http://127.0.0.1:5000")
+
+##create a new MLFLOW experiment
+mlflow.set_experiment("MLFLOW Quickstart")
+
+## Sstart an MLFLOW run
+with mlflow.start_run():
+    ## log the hyperparameters
+    mlflow.log_params(params)
+    ## Log the accuracy metrics
+    mlflow.log_metric("accuracy",accuracy)
+    # Set a tag that we can use to remind ourselves what this run was for
+    mlflow.set_tag("Training Info", "Basic LR model for iris data")
+    ## Infer the model signature
+    signature=infer_signature(X_train,lr.predict(X_train))
+    ## log the model
+    model_info=mlflow.sklearn.log_model(
+        sk_model=lr,
+        artifact_path="iris_model",
+        signature=signature,
+        input_example=X_train,
+        registered_model_name="tracking-quickstart",
+    )
+
+3. Run "mlflow ui" in command prompt and run the code
+
+4. We could see all the logs in VS Code; Go to mlruns in VS Code and see everything in it; Metrics,params,etc.. We can also see requirements.txt,model,etc..
+
+5. We can run another code with some parameters, train models, and compare in MLFlow
+
+6. **It was like entire model was packed and shown in Artifcats in MLFlow with pkl files, requirements.txt,etc.**
+
+7. We will get artifact link in MLFlow, which will be same as artifcats we see in VS Code
+
+8. That Pickle file can be used for Deployment
