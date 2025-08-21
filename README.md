@@ -129,3 +129,31 @@ with mlflow.start_run():
 7. We will get artifact link in MLFlow, which will be same as artifcats we see in VS Code
 
 8. That Pickle file can be used for Deployment
+
+
+
+
+
+
+
+###### BentoML:
+
+After creating model, we create API's, integrate with Web Application it can be flask, streamlit, We also have to dockerization; We also have to do all those separately
+
+What if we can do all those using single thing
+
+**BentoML: Helps to do all till moving to Production**
+
+**It helps in Inference Optimization;**
+
+#### Has **Build Once; Deploy Anywhere; Bento is the file name which we can deploy in Any Cloud**
+
+#### How it works: Define a model, save, Create a serve (Service will be responsible in Optimizing the inferences), Build a Bento, Deploy the Bento
+
+#### We will create it and see how it creates API, Swaggger API's
+
+For BentoML Python version should be greater than 3.8
+
+**1. Creating venv - conda create -p venv python==3.9 -y** and  activate environment "conda activate venv"
+
+2. Creating requirements.txt with bentoml==1.0.25, scikit-learn
