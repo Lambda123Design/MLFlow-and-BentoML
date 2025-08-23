@@ -156,4 +156,115 @@ For BentoML Python version should be greater than 3.8
 
 **1. Creating venv - conda create -p venv python==3.9 -y** and  activate environment "conda activate venv"
 
-2. Creating requirements.txt with bentoml==1.0.25, scikit-learn
+2. Creating requirements.txt with bentoml==1.0.25, scikit-learn and running using "pip install -r requirements.txt
+
+## With Model Training we can use BentoML and we can use app.py which does the prediction
+
+3. Trained a Model using SVM; Didn't did train test split; Just trained the model
+
+### Then we save the model to BentoML Local model store; Whenever we install BentoML, it will create a local repository in some drive; In that drive we will go and save particular classifier
+
+### We will also be able to see versioning of model 
+
+## 4. Save model to the BentoML Local Model Store
+saved_model=bentoml.sklearn.save_model("iris_clf,clf")
+print(f"Model Saved : {saved_model}")
+
+### 5. If we ran using "python train.py", we will get
+
+Model Saved : Model(tag="iris_clf:qyw5rauaa6zzrdch")
+
+We will save that id in notebook to do inferencing 
+
+6. "bentoml models list" - Shows models list; It also supports versioning
+
+### It stores model in some local store - To see it - C - Users - user - bentoml - models - We can see models with pkl and yaml files
+
+### It is the local bentoml model store; It will be by default in C Drive will get created
+
+### How to read this model and do prediction
+
+7. Created a test.py and ran
+
+import bentoml 
+
+iris_clf_runner=bentoml.sklearn.get("iris_clf:latest").to_runner()
+
+iris_clf_runner.init_local()
+
+print(iris_clf_runner.predict.run([[5.9,3,5.1,1.8]))
+
+8. **Running "python test.py" - Got output as 2; Means it is classifying as Category 2**
+
+### We didn't understand how BentoML helps to create API, Swagger UI; For that we need to write lot of codes; With respect to Flask, need to create API, write post request, get request as such 
+
+### But in BentoML we don't need to do those; To get optimal model inferencing, we need to create "service.py"; Service.py will be responsible in creating all API's and helps to create swagger UI too 
+
+import numpy as np
+
+import bentoml
+
+from bentoml.io import NumpyNdarray (Wrapper on top of numpy)
+
+iris_clf_runner=bentoml.sklearn.get("iris_clf:latest").to_runner()
+
+## If multiple models, say one for converting categorical to numerical, we can ran it, and then classifer, etc.. same way we can run in those orders in "runners=", can be given in the format of list
+
+# Create the BentoService
+svc = bentoml.Service("iris_classifier", runners=[iris_clf_runner])
+
+# Define API endpoint
+@svc.api(input=NumpyNdarray(), output=NumpyNdarray())
+def classify(input_series: np.ndarray) -> np.ndarray:
+    return iris_clf_runner.predict.run(input_series)
+
+### 9. To run the file: bentoml serve service.py:svc --reload (We can reload based on any number of changes happening; svc - name we are giving)
+
+**It ran in 0.0.0.0:3000**
+
+#### Ran "http://localhost:3000/" in Browser
+
+#### It takes to Swagger UI, which provides entire information; We can create any API's using code; It will be fully in form of Application JSON
+
+**We went to POST and gave 4 Parameters; "[1,2.3,4.2,1.0]"; Parameters of Iris Flowe; We got output as "1" (as Response Body)**
+
+### We can also use it with "POSTMAN"
+
+### Use a Post Request and type "127.0.0.1:3000/classify"; Select "Body" and change it to "JSON" and give "[
+  [1,2.3,4.2,1.0]
+]"
+
+If we click "Send", we will get same output
+
+## We used "classify" because it is "POST/classify" in the website
+
+If using Flask, we need to create it, use Swagger UI; But with BentoML, we were able to do it
+
+### Everything is fine till here, for Local
+
+### But we need to Package this application and send to Deployment Purpose
+
+### We need to create a Bento, it will have all information about code, packages; It package application fully for production deployment
+
+##### 10. Create "bentfile.yaml" (Naming should only be this, because once we write bento build, it will look for "bentofile.yaml" and wrote following code
+
+service: "service.py:svc"
+labels:
+  owner:bentoml-team
+  project:gallery
+include:
+- "*.py"
+python:
+  packages:
+    - scikit-learn 
+    - pandas
+
+**Owner name we can give anything**
+
+#### 11. Next Command: "bentoml build" (Once we write bento build, it will look for "bentofile.yaml")
+
+#### We can also Containerize the Bento using Dockers
+
+#### **12. bentoml list - See all the Bentos we have created**
+
+**In bentoml folder in C Drive, we can see folder called "bentos"; It has the entire package**
