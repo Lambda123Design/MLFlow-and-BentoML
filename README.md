@@ -480,7 +480,6 @@ with mlflow.start_run(nested=True):
 
 ### We did everything step by step - Created ANN, added Normalization, compiled it, trained model, and while training and compiling we set different parameters for learning rate and momentum; And later Logger all Parameters and Metrics
 
-
 ### 6. Based on HyperOpt created an Objective Function:
 
 def objective(params):
@@ -543,6 +542,35 @@ with mlflow.start_run():
 ### best_run = sorted(trials.results, key=lambda x: x["loss"])[0] - Then we found the best details using this; We sort it using Loss function and find out which loss is less; We will be taking it as best run
 
 ### Trying to run that best (We defined) - mlflow.log_params(best)
+
+### Once we call Objective, it will call Train Model, Params is assigned to Space, That entire result we get for Logs and we are logging
+
+## We created MLRuns inside the DL Folder; So it is good to go inside the folder and run for MLFlow; 
+
+## Krish did "cd MLDLFlow" and went into the folder and used "mlflow ui" and it created mlruns and we can see experiments with id's for multiple epochs it ran for different learning rate and momentum values
+
+### It gives learning rate, momentum, params, evaluation_metic for each metric
+
+### In VS Code we got best learning rate, momentum, RMSE value
+
+### In MLFLow, we can see expierments and runs; In one run, we were able to see, 5 different experiments, those were sub-experiments for different learning rate and momentums; We can also see for metrics too
+
+### We can compare different runs too
+
+### Once we found out our best model, we can go and register it 
+
+### Once we go to artifacts, we can see model.keras, ML Model, conda.yaml,etc...; We can regigster the model from here
+
+### We can go inside Models and see this, we can give some tags, alias
+
+### We can run for any experiments and compare it; It is the power of MLFlow
+
+#### We can load the model in VS Code too; Go to Artifact, Copy the code in "Validate model before deployment" and do inferencing, with doing some predictions
+
+### We can also do using PyFunc Load_Model
+
+### We can also register model using Code: mlflow.register_model(model_uri, "name_we_want_to_give"); If we go to models, it will automatically be registered, as we wrote code
+
 
 
 
