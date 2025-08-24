@@ -8,6 +8,14 @@
 
 ### We need to validate the models and then only to register it with help of mlflow UI
 
+## log the model using TensorFlow - mlflow.tensorflow.log_model(model,"model",signature=signature)
+
+### Mlflow also Supports Tensorflow
+
+### We used a Tensor Model and Keras is a wrap on Top of it
+
+#### Signature defines the Schema of Input and Output
+
 mlflow version 2.5.0
 
 **MLFlow doesn't have any Tracking URI; Whatever we have in Local that will only come; But we can add, Remote Server Tracking URI**
@@ -270,6 +278,271 @@ y_pred_new
 ### We can also add a key like "Still Working", so that team can know what is happening
 
 
+### A) House Price Prediction: MLflow Project
+
+## Prepraing the dataset
+data=pd.DataFrame(housing.data,columns=housing.feature_names)
+data['Price']=housing.target
+
+1. Defining HyperParameter tuning code:
+
+def hyperparameter_tuning(X_train,y_train,param_grid):
+    rf=RandomForestRegressor()
+    grid_search=GridSearchCV(estimator=rf,param_grid=param_grid,cv=3,n_jobs=-1,verbose=2,
+                             scoring="neg_mean_squared_error")
+    grid_search.fit(X_train,y_train)
+    return grid_search
+
+
+## 2. MLFlow Working:
+
+## Split data into training and test sets
+X_train,X_test,y_train,y_test=train_test_split(X,y,test_size=0.20)
+
+from mlflow.models import infer_signature
+signature=infer_signature(X_train,y_train)
+
+## Define the hyperparameter grid
+param_grid = {
+    'n_estimators': [100, 200],
+    'max_depth': [5, 10, None],
+    'min_samples_split': [2, 5],
+    'min_samples_leaf': [1, 2]
+}
+
+## start the MLFLOW Experiments
+
+with mlflow.start_run():
+    ## Perform hyperparameter tuning
+    grid_search=hyperparameter_tuning(X_train,y_train,param_grid)
+    ## Get the best model
+    best_model=grid_search.best_estimator_
+    ## Evaluate the best model
+    y_pred=best_model.predict(X_test)
+    mse=mean_squared_error(y_test,y_pred)
+    ## Log best parameters and metrics
+    mlflow.log_param("best_n_estimators",grid_search.best_params_['n_estimators'])
+    mlflow.log_param("best_max_depth", grid_search.best_params_['max_depth'])
+    mlflow.log_param("best_min_samples_split", grid_search.best_params_['min_samples_split'])
+    mlflow.log_param("best_min_samples_leaf", grid_search.best_params_['min_samples_leaf'])
+    mlflow.log_metric("mse",mse)
+    ## Tracking url
+    mlflow.set_tracking_uri(uri="http://127.0.0.1:5000")
+    tracking_url_type_store=urlparse(mlflow.get_tracking_uri()).scheme
+    if tracking_url_type_store !='file':
+        mlflow.sklearn.log_model(best_model,"model",registered_model_name="Best Randomforest Model")
+    else:
+        mlflow.sklearn.log_model(best_model,"model",signature=signature)
+    print(f"Best Hyperparameters: {grid_search.best_params_}")
+    print(f"Mean Squared Error: {mse}")
+
+3. Go to the folder and run "mlflow ui" and then set "Tracking URI" in the code
+
+## If we didn't set "mlflow.set_tracking_uri(uri="http://127.0.0.1:5000")". then "tracking_url_type_store=urlparse(mlflow.get_tracking_uri()).scheme", will return a value as "file", because we haven't set any URL
+
+## If we set it, we will get scheme of the URI and that is what url parse does
+
+### We wrote a else condition in the above mlflow code, when we didn't set URI too, in which we didn't say anything about registered_model
+
+### We didn't set any experiment name; So it's name was "Default"
+
+
+### B) Deep Learning ANN Model with MLFlow
+
+### 1. Used HyperOpt Library - Used to do Hyperparameter Tuning in ANN
+
+There was previous version of Numpy that was incompatible; So we uninstalled it
+
+## from hyperopt import STATUS_OK,Trials,fmin,hp,tpe
+
+import mlflow
+from mlflow.models import infer_signature
+
+## 2. Load the dataset
+data=pd.read_csv(
+    "https://raw.githubusercontent.com/mlflow/mlflow/master/tests/datasets/winequality-white.csv",
+    sep=";",
+)
+
+### This is a Classification Project, to predict Wine Quality
+
+## 3. Split the data into training,validation and test sets
+
+train,test=train_test_split(data,test_size=0.25,random_state=42)
+
+train_x=train.drop(['quality'],axis=1).values
+
+train_y=train[['quality']].values.ravel()
+
+#### Usage of values.ravel in "train_y=train[['quality']].values.ravel()"
+
+## train[['quality']].values - It is a 2D Array; 
+
+## train_y=train[['quality']].values.ravel() - Gives a 1-D array and that is the reason we used it; Or else we need to reshape it using NumPy Array
+
+## test dataset
+test_x=test.drop(['quality'],axis=1).values
+test_y=test[['quality']].values.ravel()
+
+#### 4. We created further used Training Data into validation data from Train Data; We use Train and Valid data to check performance of model; We use test data as a New data and do predictions
+
+## splitting this train data into train and validation
+
+train_x,valid_x,train_y,valid_y=train_test_split(train_x,train_y,test_size=0.20,random_state=42)
+
+signature=infer_signature(train_x,train_y)
+
+### 4. Creating an ANN Model
+
+def train_model(params,epochs,train_x,train_y,valid_x,valid_y,test_x,test_y):
+    ## Define model architecture
+    mean=np.mean(train_x,axis=0)
+    var=np.var(train_x,axis=0)
+    model=keras.Sequential(
+        [
+            keras.Input([train_x.shape[1]]),
+            keras.layers.Normalization(mean=mean,variance=var),
+            keras.layers.Dense(64,activation='relu'),
+            keras.layers.Dense(1)
+        ]
+    )
+
+mean=np.mean(train_x,axis=0) - For row wise it is going to find mean of all features
+
+### This is required as we have to Perform Normalization when we are training our ANN, our Neural Network
+
+### Next, we found out for Variance for row wise; Both we will use for our Layer Normalization
+
+## Next we took Keras Sequential Model ; keras.Input([train_x.shape[1]] - We took all 11 Input Features and this Becomes our Input Layer
+
+### Then we do Layer Normalization - keras.layers.Normalization(mean=mean,variance=var)
+
+### Creating an Hidden Layer - keras.layers.Dense(64,activation='relu')
+
+### Creating OutPut Layer - keras.layers.Dense(1)
+
+We created an Simple ANN, with not much of Hidden Layers and all
+
+### 5. Compiling the Model:
+
+model.compile(optimizer=keras.optimizers.SGD(
+        learning_rate=params["lr"],momentum=params["momentum"]
+    ),
+    loss="mean_squared_error",
+    metrics=[keras.metrics.RootMeanSquaredError()]
+    )
+
+### For SGD, we need to give both Learning Rate and also Momentum
+
+### learning_rate=params["lr"] - Params - By what parameter you want to try different different experiments; We can try with different different Hidden Layers; But it Takes Time; So we will try with different Learning Rates; Model will be trained with different different Learning Rates;
+
+### Momentum is also another Parameter which we want to try with different values for better outcome;
+
+### Other reason is also, we want to Log some experiments; That is why we use HyperOpt too, it will try with each and every Parameters we have given over there
+
+### 6. Train the ANN model with lr and momentum params wwith MLFLOW tracking
+    
+with mlflow.start_run(nested=True):
+        model.fit(train_x,train_y,validation_data=(valid_x,valid_y),
+                  epochs=epochs,
+                  batch_size=64)
+        ## Evaluate the model
+        eval_result=model.evaluate(valid_x,valid_y,batch_size=64)
+        eval_rmse=eval_result[1]
+        ## Log the parameters and results
+        mlflow.log_params(params)
+        mlflow.log_metric("eval_rmse",eval_rmse)
+        ## log the model
+        mlflow.tensorflow.log_model(model,"model",signature=signature)
+        return {"loss": eval_rmse, "status": STATUS_OK, "model": model}
+
+### It should also be in the Same function - Train the ANN model with lr and momentum params wwith MLFLOW tracking
+
+### mlflow.start_run(nested=True) - Since we want to try with different different parameters, we have a option caled nested=True to do that; It will go inside and inside and follow a Nested Structure
+
+### Training -    model.fit(train_x,train_y,validation_data=(valid_x,valid_y), epochs=epochs, batch_size=64)
+
+### Evaluate the model - eval_result=model.evaluate(valid_x,valid_y,batch_size=64);
+
+### eval_rmse=eval_result[1] - It will be in the form of a list, so we take first index to get RMSE; We want to track this and also Learning Rate, Momentum, etc.. 
+
+## Log the parameters and results - mlflow.log_params(params); mlflow.log_metric("eval_rmse",eval_rmse)
+
+## log the model using TensorFlow - mlflow.tensorflow.log_model(model,"model",signature=signature)
+
+### Mlflow also Supports Tensorflow
+
+### We used a Tensor Model and Keras is a wrap on Top of it; Signature defines the Schema of Input and Output
+
+## It knows that this entire model is trained on Keras and Tensorflow and knows what are all the artifacts that needs to be create for this particular model
+
+## Finally we returned everything - return {"loss": eval_rmse, "status": STATUS_OK, "model": model}
+
+### We did everything step by step - Created ANN, added Normalization, compiled it, trained model, and while training and compiling we set different parameters for learning rate and momentum; And later Logger all Parameters and Metrics
+
+
+### 6. Based on HyperOpt created an Objective Function:
+
+def objective(params):
+    # MLflow will track the parameters and results for each run
+    result = train_model(
+        params,
+        epochs=3,
+        train_x=train_x,
+        train_y=train_y,
+        valid_x=valid_x,
+        valid_y=valid_y,
+        test_x=test_x,
+        test_y=test_y,
+    )
+    return result
+
+**We gave our Training Mode, parameters, epochs, train,test data and finally returning the result**
+
+### 7. Setting all Parameters:
+
+space={
+    "lr":hp.loguniform("lr",np.log(1e-5),np.log(1e-1)),
+    "momentum":hp.uniform("momentum",0.0,1.0)
+
+}
+
+### From HyperOpt we used hp; It has for loguniform and uniform; It is like Hyperparameter Tuning; Learning Rate - It will be ranging from 10^-5 to 10^-1
+
+### Momentum - "momentum":hp.uniform("momentum",0.0,1.0); 0 to 1
+
+### 8. In Training we wrote start_run; Now we will write one more to run on top of it
+
+mlflow.set_experiment("wine-quality")
+with mlflow.start_run():
+    # Conduct the hyperparameter search using Hyperopt
+    trials=Trials()
+    best=fmin(
+        fn=objective,
+        space=space,
+        algo=tpe.suggest,
+        max_evals=4,
+        trials=trials
+    )
+    # Fetch the details of the best run
+    best_run = sorted(trials.results, key=lambda x: x["loss"])[0]
+    # Log the best parameters, loss, and model
+    mlflow.log_params(best)
+    mlflow.log_metric("eval_rmse", best_run["loss"])
+    mlflow.tensorflow.log_model(best_run["model"], "model", signature=signature)
+    # Print out the best parameters and corresponding loss
+    print(f"Best parameters: {best}")
+    print(f"Best eval rmse: {best_run['loss']}")
+
+## Start Run - To start the Experiment
+
+### trials=Trials() - This performs HyperParameter Tuning
+
+### best=fmin(fn=objective,space=space,algo=tpe.suggest, max_evals=4,trials=trials) - Function name - Objective; space - Hyperparameters we want to try with;  type.suggest - It will be using internally all kind different kind of algorithms itself and maximum evaluation; And we gave maximum evaluation = 4;  Trials - We gave our trials; We defined these for Hyperparameter Search; 
+
+### best_run = sorted(trials.results, key=lambda x: x["loss"])[0] - Then we found the best details using this; We sort it using Loss function and find out which loss is less; We will be taking it as best run
+
+### Trying to run that best (We defined) - mlflow.log_params(best)
 
 
 
