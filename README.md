@@ -1,5 +1,13 @@
 # MLFlow-and-BentoML
 
+### In above code, we didn't directly go ahead and registered; We are logging the parameters; And then we can register it
+
+### Here it isn't showing like it is already registered; It is asking us to Register
+
+### How to know if need to register it; Compare the model run and see with metrics
+
+### We need to validate the models and then only to register it with help of mlflow UI
+
 mlflow version 2.5.0
 
 **MLFlow doesn't have any Tracking URI; Whatever we have in Local that will only come; But we can add, Remote Server Tracking URI**
@@ -881,6 +889,87 @@ iris_features_name=datasets.load_iris().feature_names
 result=pd.DataFrame(X_test,columns=iris_features_name)
 result["actual_class"]=y_test
 result["predcited_class"]=predictions
+
+## B) MLFlow Model Registry:
+
+## MLFlow --> Experiments --> Artifacts --> Model Registered
+
+### Below that we can see it's version and registered on 
+
+### We can also go to another run and see version 1 
+
+### Model Registry is like a store which will be making sure that all the models are stored with all functionalities of creating different functionalities, tags and many more things
+
+## If we click on version, we can see different versions of models too
+
+### In below code we directly went ahead and register both the models; It shouldn't be the case; We should save the best model
+
+model_info=mlflow.sklearn.log_model(
+    sk_model=lr,
+    artifact_path="iris_model",
+    signature=signature,
+    input_example=X_train,
+    registered_model_name="tracking-quickstart",
+
+)
+
+**1. Logging the Parameters**
+
+##create a new MLFLOW experiment
+mlflow.set_experiment("MLFLOW Quickstart")
+
+## Sstart an MLFLOW run
+with mlflow.start_run():
+    ## log the hyperparameters
+    mlflow.log_params(params)
+    ## Log the accuracy metrics
+    mlflow.log_metric("accuracy",1.0)
+    # Set a tag that we can use to remind ourselves what this run was for
+    mlflow.set_tag("Training Info2", "Basic LR model for iris data")
+    ## Infer the model signature
+    signature=infer_signature(X_train,lr.predict(X_train))
+    ## log the model
+    ## log the model
+    model_info=mlflow.sklearn.log_model(
+        sk_model=lr,
+        artifact_path="iris_model",
+        signature=signature,
+        input_example=X_train,
+    )
+
+### In above code, we didn't directly go ahead and registered; We are logging the parameters; And then we can register it
+
+### Here it isn't showing like it is already registered; It is asking us to Register
+
+### How to know if need to register it; Compare the model run and see with metrics
+
+### Later Krish Registered the best model and it automatically showed the version of it (v3)
+
+### Once we go inside Models now, we can see models and versions and we can add Tag too (production:success); Alias (@success)
+
+### When working as a team, this tag and alias will help in better understanding
+
+#### 2) How to do Predictions
+
+## Inferencing from model from model registry
+
+import mlflow.sklearn
+model_name="tracking-quickstart"
+model_version="latest"
+
+model_uri=f"models:/{model_name}/{model_version}"
+
+model=mlflow.sklearn.load_model(model_uri)
+model
+
+model_uri
+
+## Predicting Test Data 
+
+y_pred_new=model.predict(X_test)
+y_pred_new
+
+### We can also add a key like "Still Working", so that team can know what is happening
 
 
 
